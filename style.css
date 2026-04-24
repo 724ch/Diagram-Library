@@ -1,0 +1,268 @@
+/* -----------------------------------------------------------
+   색·폰트 변수
+   포인트 컬러는 --accent 한 줄만 바꾸면 전체에 반영됩니다.
+   ----------------------------------------------------------- */
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+  --muted: #888888;
+  --line: #e5e5e5;
+  --accent: #c8281f; /* ← 포인트 컬러. 나중에 여기만 바꾸세요. */
+
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas,
+          "D2Coding", "Nanum Gothic Coding", monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* 방 열 호버 시 preview가 body 오른쪽 바깥으로 빠져도 가로 스크롤이 생기지 않도록 */
+html { overflow-x: clip; }
+
+body {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--fg);
+  background: var(--bg);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem 6rem;
+}
+
+/* -----------------------------------------------------------
+   index.html — 아카이브 목록 (3열 그리드)
+   ----------------------------------------------------------- */
+header h1 {
+  font-size: 14px;
+  font-weight: normal;
+  text-align: center;
+  margin: 0 0 5rem 0;
+  letter-spacing: 0.02em;
+}
+
+/* 3열 그리드는 index 페이지에서만 (main이 <section>을 직접 자식으로 가질 때).
+   item 페이지는 main 안에 section이 없으므로 일반 세로 흐름이 된다. */
+main:has(> section) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+main section {
+  position: relative;
+}
+
+main section h2 {
+  font-size: 14px;
+  font-weight: normal;
+  color: var(--muted);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.05em;
+}
+
+ol.archive {
+  list-style: none;
+  counter-reset: item;
+  padding: 0;
+  margin: 0;
+}
+
+ol.archive li {
+  counter-increment: item;
+  display: flex;
+  align-items: baseline;
+}
+
+ol.archive li::before {
+  content: counter(item, decimal-leading-zero);
+  flex: 0 0 3em;
+  color: var(--muted);
+}
+
+ol.archive a {
+  color: var(--fg);
+  text-decoration: none;
+  word-break: keep-all; /* 한국어 단어는 중간에서 끊기지 않도록 */
+}
+
+ol.archive a:hover {
+  color: var(--accent);
+}
+
+/* 좁은 화면에서는 1열로 쌓기 (index 페이지만) */
+@media (max-width: 800px) {
+  main:has(> section) {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  main section + section h2 {
+    margin-top: 3.5rem;
+  }
+}
+
+/* 호버 시 뜨는 커버 썸네일 (스크립트가 각 링크에 <img>를 주입합니다)
+   호버한 항목이 속한 열의 오른쪽 공간에 뜹니다.
+   — 원 호버 시 → 원 오른쪽 (원/각 사이 공간)
+   — 각 호버 시 → 각 오른쪽 (각/방 사이 공간)
+   — 방 호버 시 → 방 오른쪽 (콘텐츠 우측 여백) */
+.preview {
+  display: none;
+  position: absolute;
+  top: 2rem;
+  left: calc(100% + 1rem);
+  width: 200px;
+  max-height: 50vh;
+  object-fit: contain;
+  pointer-events: none;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  z-index: 100;
+}
+
+main section a:hover .preview {
+  display: block;
+}
+
+/* 방(마지막 열)은 오른쪽에 공간이 부족하니 preview를 왼쪽에 띄운다 */
+main section:last-of-type .preview {
+  left: auto;
+  right: calc(100% + 1rem);
+}
+
+@media (max-width: 800px) {
+  .preview { display: none !important; }
+}
+
+/* -----------------------------------------------------------
+   item.html — 개별 아이템 페이지
+   ----------------------------------------------------------- */
+nav {
+  margin-bottom: 3rem;
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+nav a:hover {
+  color: var(--accent);
+}
+
+#cover {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+h1#title {
+  font-size: 14px;
+  font-weight: normal;
+  margin: 0 0 1.5rem 0;
+}
+
+#meta {
+  list-style: none;
+  margin: 0 0 3rem 0;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+#meta li {
+  padding: 0.1em 0;
+}
+
+#meta strong {
+  font-weight: normal;
+  color: var(--fg);
+  display: inline-block;
+  width: 7em;
+}
+
+/* 본문 섹션 헤더 (## 맥락, ## 쓰임, ## 편집점) */
+#content h2 {
+  font-size: 14px;
+  font-weight: normal;
+  color: var(--fg);
+  margin: 2.5rem 0 0.75rem 0;
+  letter-spacing: 0.02em;
+}
+
+/* h2 앞에 해당 챕터의 shape를 불렛처럼 붙인다.
+   shape 값은 item.html의 스크립트가 frontmatter에서 읽어 body[data-shape]에 넣어준다.
+   (원 챕터 → ○, 삼각 챕터 → △, 방 챕터 → □) */
+#content h2::before {
+  color: var(--muted);
+  margin-right: 0.6em;
+}
+body[data-shape="○"] #content h2::before { content: "○"; }
+body[data-shape="△"] #content h2::before {
+  content: "△";
+  /* △은 ○·□보다 시각적으로 살짝 낮게 앉는다(폰트 공통). 살짝 올려 베이스라인을 맞춘다. */
+  display: inline-block;
+  transform: translateY(-0.08em);
+}
+body[data-shape="□"] #content h2::before { content: "□"; }
+
+/* △을 인라인으로 섞어 쓸 때 쓰는 유틸 클래스 — 예: "○△□" 나열, 섹션 헤더의 "△ 각 角" */
+.shape-lift {
+  display: inline-block;
+  transform: translateY(-0.08em);
+}
+
+#content a {
+  color: var(--accent);
+}
+
+/* item.html: 세로 1축으로 사진(크게) → 타이틀 → 메타 → 본문.
+   넓은 폭을 써서 여유 있게 흐르도록 조정. */
+body:has(#content) {
+  max-width: 960px;
+}
+
+body:has(#content) #cover {
+  width: 100%;
+  margin-bottom: 3rem;
+}
+
+body:has(#content) h1#title {
+  font-size: 18px;
+  margin: 0 0 2rem 0;
+}
+
+body:has(#content) #meta {
+  font-size: 14px;
+}
+
+/* 본문 아래의 이전/다음 네비게이션.
+   ◁ 이전   07 / 17   다음 ▷  형태로 양 끝 정렬.
+   카운터는 같은 카테고리 안에서의 순번. */
+#item-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+#item-nav a {
+  color: var(--fg);
+  text-decoration: none;
+}
+
+#item-nav a:hover {
+  color: var(--accent);
+}
+
+#item-nav .counter {
+  color: var(--muted);
+}
+
+/* 첫 번째/마지막 아이템일 때 삼각형은 남겨두되 클릭 불가로 흐리게 표시 */
+#item-nav .disabled {
+  color: var(--line);
+}

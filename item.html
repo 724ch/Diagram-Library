@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 페이지 제목은 각 아이템의 frontmatter의 title 값으로 자동 교체됩니다 -->
+  <title>로딩중...</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- marked: Markdown 텍스트를 HTML로 변환해주는 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@18.0.0/lib/marked.umd.min.js"></script>
+  <!-- DOMPurify: HTML에서 위험한 스크립트/이벤트 핸들러를 제거해주는 보안 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.3.3/dist/purify.min.js"></script>
+</head>
+<body>
+  <nav><a href="index.html">○<span class="shape-lift">△</span>□ 목록</a></nav>
+
+  <!-- 스크립트가 아래 요소에 내용을 채워넣습니다. id는 유지하되 순서와 디자인은 자유롭게 바꿔도 됩니다. -->
+  <main>
+    <img id="cover" alt="" hidden>
+    <h1 id="title"></h1>
+    <ul id="meta"></ul>
+    <article id="content"></article>
+    <!-- 이전/다음 네비게이션. 스크립트가 index.html의 목록 순서대로 이웃을 찾아 채워 넣는다. -->
+    <nav id="item-nav"></nav>
+  </main>
+
+  <script>
+    // 이 스크립트는:
+    // 1. URL에서 ?id=... 값을 읽고
+    // 2. content/<id>/index.md 파일을 불러와서
+    // 3. frontmatter는 메타데이터 리스트로, 본문은 HTML로 렌더링한다
+
+    // 간단한 YAML frontmatter 파서 (한 줄짜리 key: value 형식만 지원)
+    function parseFrontmatter(text) {
+      const m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+      if (!m) return { data: {}, body: text };
+      const data = {};
+      m[1].split('\n').forEach(line => {
+        const [key, ...rest] = line.split(':');
+        if (key) data[key.trim()] = rest.join(':').trim();
+      });
+      return { data, body: m[2] };
+    }
+
+    // 상대 경로를 해당 아이템 폴더 기준으로 변환
+    function resolvePath(path, id) {
+      if (/^(https?:)?\/\//.test(path) || path.startsWith('/')) return path;
+      return `content/${id}/${path.replace(/^\.\//, '')}`;
+    }
+
+    const id = new URLSearchParams(location.search).get('id');
+
+    // id는 영문, 숫자, 하이픈만 허용 (content/ 안 폴더 이름과 일치해야 함)
+    if (!id || !/^[a-z0-9-]+$/i.test(id)) {
+      document.querySelector('main').textContent =
+        `잘못된 id: "${id}". 영문, 숫자, 하이픈만 사용할 수 있습니다.`;
+    } else {
+      fetch(`content/${id}/index.md`)
+        .then(r => {
+          if (!r.ok) throw new Error('Not found');
+          return r.text();
+        })
+        .then(text => {
+          const { data, body } = parseFrontmatter(text);
+          if (data.title) {
+            document.title = data.title;
+            document.getElementById('title').textContent = data.title;
+          }
+
+          if (data.cover) {
+            const cover = document.getElementById('cover');
+            cover.src = resolvePath(data.cover, id);
+            cover.alt = data.title || '';
+            cover.hidden = false;
+          }
+
+          // 본문 섹션(맥락/쓰임/편집점) 앞에 해당 챕터의 shape를 dingbat처럼 붙이기 위해
+          // frontmatter의 shape 값을 body의 data 속성으로 노출한다. 스타일은 style.css에서.
+          if (data.shape) {
+            document.body.dataset.shape = data.shape;
+          }
+
+          // 나머지 frontmatter를 메타데이터 리스트로 렌더링.
+          // title과 cover는 위에서 이미 사용했으므로 여기서는 제외.
+          const meta = document.getElementById('meta');
+          for (const [k, v] of Object.entries(data)) {
+            if (k === 'title' || k === 'cover') continue;
+            const li = document.createElement('li');
+            const strong = document.createElement('strong');
+            strong.textContent = k;
+            li.appendChild(strong);
+            li.append(`: ${v}`);
+            meta.appendChild(li);
+          }
+
+          // marked는 HTML 문자열을 반환하므로 innerHTML을 사용한다.
+          // DOMPurify로 <script>, 이벤트 핸들러, javascript: URL 등 위험한 요소를 제거한다.
+          const article = document.getElementById('content');
+          article.innerHTML = DOMPurify.sanitize(marked.parse(body));
+          article.querySelectorAll('img').forEach(img => {
+            img.src = resolvePath(img.getAttribute('src'), id);
+          });
+        })
+        .catch(() => {
+          document.querySelector('main').textContent = `아이템을 불러올 수 없습니다: ${id}`;
+        });
+
+      // 이전/다음 네비게이션: index.html의 목록을 그대로 읽어와
+      // 현재 아이템의 앞뒤로 이동할 수 있는 링크를 만든다.
+      // 카운터는 같은 카테고리(원/삼각/방) 안에서의 순번을 보여준다 — 목록 페이지의 번호와 맞다.
+      fetch('index.html')
+        .then(r => r.text())
+        .then(html => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const ids = [...doc.querySelectorAll('.archive a')]
+            .map(a => new URL(a.href, location.href).searchParams.get('id'))
+            .filter(Boolean);
+
+          const i = ids.indexOf(id);
+          if (i === -1) return;
+
+          const category = id.split('-')[0]; // 'circle' | 'triangle' | 'square'
+          const local = ids.filter(x => x.startsWith(category + '-'));
+          const localIdx = local.indexOf(id);
+
+          const pad = n => String(n).padStart(2, '0');
+          const slot = (target, label) => target
+            ? `<a href="item.html?id=${target}">${label}</a>`
+            : `<span class="disabled">${label}</span>`;
+
+          document.getElementById('item-nav').innerHTML = `
+            ${slot(ids[i - 1], '◁ 이전')}
+            <span class="counter">${pad(localIdx + 1)} / ${pad(local.length)}</span>
+            ${slot(ids[i + 1], '다음 ▷')}
+          `;
+        })
+        .catch(() => { /* 네비게이션은 선택사항 — 실패해도 본문은 그대로 보인다 */ });
+    }
+  </script>
+</body>
+</html>
