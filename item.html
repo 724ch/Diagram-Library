@@ -14,15 +14,27 @@
 <body>
   <nav><a href="index.html">○<span class="shape-lift">△</span>□ 목록</a></nav>
 
-  <!-- 스크립트가 아래 요소에 내용을 채워넣습니다. id는 유지하되 순서와 디자인은 자유롭게 바꿔도 됩니다. -->
+  <!-- 두 열 구조:
+       왼쪽(.col-left) — 이미지 + 타이틀 + 메타
+       오른쪽(.col-right) — 본문(맥락/쓰임/편집점)
+       이전/다음 네비게이션은 두 열 아래에 가로로 펼친다.
+       이미지에 호버하면 .cover-zoom이 오른쪽 영역에 크게 떠서 자세히 볼 수 있다. -->
   <main>
-    <img id="cover" alt="" hidden>
-    <h1 id="title"></h1>
-    <ul id="meta"></ul>
-    <article id="content"></article>
-    <!-- 이전/다음 네비게이션. 스크립트가 index.html의 목록 순서대로 이웃을 찾아 채워 넣는다. -->
+    <div class="cols">
+      <aside class="col-left">
+        <img id="cover" alt="" hidden>
+        <img class="cover-zoom" alt="" hidden>
+        <h1 id="title"></h1>
+        <ul id="meta"></ul>
+      </aside>
+      <article id="content" class="col-right"></article>
+    </div>
     <nav id="item-nav"></nav>
   </main>
+
+  <footer>
+    <a href="about.html">About</a>
+  </footer>
 
   <script>
     // 이 스크립트는:
@@ -68,10 +80,15 @@
           }
 
           if (data.cover) {
+            const src = resolvePath(data.cover, id);
             const cover = document.getElementById('cover');
-            cover.src = resolvePath(data.cover, id);
+            cover.src = src;
             cover.alt = data.title || '';
             cover.hidden = false;
+            // 호버 시 뜨는 큰 버전도 같은 이미지를 사용한다.
+            const zoom = document.querySelector('.cover-zoom');
+            zoom.src = src;
+            zoom.hidden = false;
           }
 
           // 본문 섹션(맥락/쓰임/편집점) 앞에 해당 챕터의 shape를 dingbat처럼 붙이기 위해

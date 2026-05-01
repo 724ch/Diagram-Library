@@ -11,8 +11,8 @@
     <h1>Arch!ve-Sense: Diagram Library</h1>
   </header>
 
-  <main>
-    <section>
+  <main class="archive-list">
+    <section data-shape="○">
       <h2>○ 원 圓</h2>
       <ol class="archive">
         <li><a href="item.html?id=circle-01-monad">모나드 / Monad / 單子</a></li>
@@ -35,8 +35,8 @@
       </ol>
     </section>
 
-    <section>
-      <h2><span class="shape-lift">△</span> 각 角</h2>
+    <section data-shape="△">
+      <h2>△ 각 角</h2>
       <ol class="archive">
         <li><a href="item.html?id=triangle-01-tetractys">테트락티스 / Tetractys</a></li>
         <li><a href="item.html?id=triangle-02-rhetorical-triangle">설득의 3요소 / Logo, Ethos, Pathos</a></li>
@@ -57,7 +57,7 @@
       </ol>
     </section>
 
-    <section>
+    <section data-shape="□">
       <h2>□ 방 方</h2>
       <ol class="archive">
         <li><a href="item.html?id=square-01-necker-cube">네커 입방체 / Cube</a></li>
@@ -78,20 +78,62 @@
     </section>
   </main>
 
+  <footer>
+    <a href="about.html">About</a>
+  </footer>
+
   <script>
-    // 각 링크에 호버 시 뜰 커버 이미지를 붙인다.
-    // 링크의 ?id=... 값을 읽어 content/<id>/cover-cropped.png 경로를 만든다.
-    // 해당 파일이 없으면 이미지를 조용히 제거한다.
+    // 각 링크에 호버 시 뜰 미리보기(커버 이미지 + 코멘트)를 붙인다.
+    // 링크의 ?id=... 값을 읽어 content/<id>/cover-cropped.png 와
+    // content/<id>/index.md 경로를 만든다.
+    // 이미지가 없으면 조용히 제거하고, 코멘트는 처음 호버할 때 한 번만 불러온다.
     document.querySelectorAll('.archive a').forEach(link => {
       const id = new URL(link.href).searchParams.get('id');
       if (!id) return;
+
+      const preview = document.createElement('span');
+      preview.className = 'preview';
+
       const img = document.createElement('img');
-      img.className = 'preview';
       img.src = `content/${id}/cover-cropped.png`;
       img.alt = '';
       img.loading = 'lazy';
       img.onerror = () => img.remove();
-      link.appendChild(img);
+      preview.appendChild(img);
+
+      const caption = document.createElement('span');
+      caption.className = 'preview-caption';
+      preview.appendChild(caption);
+
+      link.appendChild(preview);
+
+      // 처음 호버할 때 마크다운에서 title / comment 두 줄을 가져와 채운다.
+      let loaded = false;
+      link.addEventListener('mouseenter', async () => {
+        if (loaded) return;
+        loaded = true;
+        try {
+          const res = await fetch(`content/${id}/index.md`);
+          if (!res.ok) return;
+          const text = await res.text();
+          const titleMatch = text.match(/^title:\s*(.+)$/m);
+          const commentMatch = text.match(/^comment:\s*(.+)$/m);
+          if (titleMatch) {
+            const title = document.createElement('span');
+            title.className = 'preview-title';
+            title.textContent = titleMatch[1].trim();
+            caption.appendChild(title);
+          }
+          if (commentMatch) {
+            const comment = document.createElement('span');
+            comment.className = 'preview-comment';
+            comment.textContent = commentMatch[1].trim();
+            caption.appendChild(comment);
+          }
+        } catch {
+          // 파일을 못 읽으면 조용히 무시 — 이미지만 뜬다.
+        }
+      });
     });
   </script>
 </body>
