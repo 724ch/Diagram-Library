@@ -103,6 +103,7 @@
           for (const [k, v] of Object.entries(data)) {
             if (k === 'title' || k === 'cover') continue;
             const li = document.createElement('li');
+            li.dataset.key = k;
             const strong = document.createElement('strong');
             strong.textContent = k;
             li.appendChild(strong);
@@ -150,6 +151,20 @@
             <span class="counter">${pad(localIdx + 1)} / ${pad(local.length)}</span>
             ${slot(ids[i + 1], '다음 ▷')}
           `;
+
+          // 키보드 ←/→ 로도 이전/다음 아이템으로 이동 — 목록의 모든 항목을 가로지른다.
+          // 입력 필드나 단축키 조합(Cmd/Ctrl/Alt + ←/→ = 브라우저 뒤로/앞으로)에서는 무시한다.
+          const prevId = ids[i - 1];
+          const nextId = ids[i + 1];
+          document.addEventListener('keydown', e => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            if (e.key === 'ArrowLeft' && prevId) {
+              location.href = `item.html?id=${prevId}`;
+            } else if (e.key === 'ArrowRight' && nextId) {
+              location.href = `item.html?id=${nextId}`;
+            }
+          });
         })
         .catch(() => { /* 네비게이션은 선택사항 — 실패해도 본문은 그대로 보인다 */ });
     }

@@ -16,14 +16,19 @@
   <nav><a href="index.html">○<span class="shape-lift">△</span>□ 목록</a></nav>
 
   <main>
-    <h1 class="about-title">About</h1>
-
-    <!-- 목차: about.md의 ## 헤딩들로부터 자동 생성됩니다. -->
-    <nav class="about-toc">
-      <ol></ol>
-    </nav>
-
-    <!-- 본문(<section> 박스들)이 아래 스크립트로 여기에 채워집니다. -->
+    <!-- 좌: About 타이틀 + TOC, 우: 활성 섹션만 보여주는 본문.
+         타이틀이 좌측 컬럼 안에 있어 우측 본문이 같은 시작 위치에 정렬된다. -->
+    <div class="about-cols">
+      <div class="about-side">
+        <h1 class="about-title">About</h1>
+        <nav class="about-toc">
+          <ol></ol>
+        </nav>
+      </div>
+      <div class="about-content">
+        <!-- 인트로(첫 ## 이전 내용) + 섹션들이 스크립트로 여기에 채워집니다. -->
+      </div>
+    </div>
   </main>
 
   <script>
@@ -54,9 +59,10 @@
 
         const main = document.querySelector('main');
         const tocOl = main.querySelector('.about-toc ol');
+        const contentEl = main.querySelector('.about-content');
 
         // 마크다운 결과를 ## 헤딩 단위로 <section>으로 묶는다.
-        // 첫 ## 이전의 내용은 인트로로 따로 모아 둔다 (TOC에는 넣지 않음).
+        // 첫 ## 이전의 내용은 인트로로 따로 모아 둔다 (TOC에는 넣지 않음, 항상 표시).
         const intro = document.createElement('div');
         intro.className = 'about-intro';
         const sections = [];
@@ -70,8 +76,8 @@
           (current || intro).appendChild(el);
         });
 
-        if (intro.children.length > 0) main.appendChild(intro);
-        sections.forEach(s => main.appendChild(s));
+        if (intro.children.length > 0) contentEl.appendChild(intro);
+        sections.forEach(s => contentEl.appendChild(s));
 
         // TOC: 각 섹션의 h2 텍스트를 링크로 채운다.
         sections.forEach(s => {
@@ -83,6 +89,27 @@
           li.appendChild(a);
           tocOl.appendChild(li);
         });
+
+        // 한 번에 한 섹션만 보이도록 .active 토글.
+        // URL 해시가 비어 있으면 첫 섹션(프로젝트 소개)을 기본으로 보여준다.
+        function showSection(id) {
+          const target = sections.find(s => s.id === id) || sections[0];
+          if (!target) return;
+          sections.forEach(s => s.classList.toggle('active', s === target));
+          tocOl.querySelectorAll('a').forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + target.id);
+          });
+        }
+
+        // hash 변경(TOC 클릭, 뒤로가기 등) 감지해 active 섹션 갱신.
+        // 해시는 한글이면 URL-encoded로 들어오므로 decode해서 매칭한다.
+        // 섹션 전환 시 스크롤을 페이지 상단으로 — 새 섹션을 처음부터 읽을 수 있게.
+        window.addEventListener('hashchange', () => {
+          showSection(decodeURIComponent(location.hash.slice(1)));
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        showSection(decodeURIComponent(location.hash.slice(1)));
       })
       .catch(() => {
         document.querySelector('main').textContent = 'about.md를 불러올 수 없습니다.';

@@ -71,6 +71,27 @@ main section h2 {
   letter-spacing: 0.05em;
 }
 
+/* index.html 섹션 헤더에 채워진 도형(●▲■)을 도형별 강조색으로 주입.
+   HTML의 h2 텍스트에는 도형을 두지 않는다(중복 방지). */
+main.archive-list section h2::before {
+  display: inline-block;
+  margin-right: 0.4em;
+}
+main.archive-list section[data-shape="○"] h2::before {
+  content: "●";
+  color: var(--accent-circle);
+}
+main.archive-list section[data-shape="△"] h2::before {
+  content: "▲";
+  color: var(--accent-triangle);
+  /* 채워진 ▲은 ●·■보다 베이스라인이 살짝 낮다 — 약간 올려 줄을 맞춘다. */
+  transform: translateY(-0.08em);
+}
+main.archive-list section[data-shape="□"] h2::before {
+  content: "■";
+  color: var(--accent-square);
+}
+
 ol.archive {
   list-style: none;
   counter-reset: item;
@@ -179,6 +200,22 @@ main section a:hover .preview {
   display: block;
 }
 
+/* 미리보기: 부모 섹션의 data-shape에 따라 이미지·캡션 테두리만 강조색으로.
+   (코멘트 텍스트는 기존 muted 그대로 — 호버 색은 링크 텍스트에서만 표현한다.)
+   원/각/방 색 체계는 ol.archive a:hover와 동일(원=ff0066, 각=14c914, 방=409dfc). */
+main.archive-list section[data-shape="○"] .preview img,
+main.archive-list section[data-shape="○"] .preview-caption {
+  border-color: var(--accent-circle);
+}
+main.archive-list section[data-shape="△"] .preview img,
+main.archive-list section[data-shape="△"] .preview-caption {
+  border-color: var(--accent-triangle);
+}
+main.archive-list section[data-shape="□"] .preview img,
+main.archive-list section[data-shape="□"] .preview-caption {
+  border-color: var(--accent-square);
+}
+
 /* 방(마지막 열)은 오른쪽에 공간이 부족하니 preview를 왼쪽에 띄운다 */
 main section:last-of-type .preview {
   left: auto;
@@ -239,6 +276,18 @@ h1#title {
   width: 7em;
 }
 
+/* comment 메타 줄은 도형별 강조색으로 — 편집자 시각의 핵심 한 줄을 시각적으로 들어 올린다.
+   라벨('comment')은 #meta strong 규칙으로 fg를 유지하므로, 콜론 뒤 값만 강조색이 된다. */
+body[data-shape="○"] #meta li[data-key="comment"] {
+  color: var(--accent-circle);
+}
+body[data-shape="△"] #meta li[data-key="comment"] {
+  color: var(--accent-triangle);
+}
+body[data-shape="□"] #meta li[data-key="comment"] {
+  color: var(--accent-square);
+}
+
 /* 본문 섹션 헤더 (## 맥락, ## 쓰임, ## 편집점) */
 #content h2 {
   font-size: 14px;
@@ -288,7 +337,7 @@ body:has(#content) {
 
 body:has(#content) .cols {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) 1fr;
+  grid-template-columns: 2fr 3fr;
   gap: 4rem;
   align-items: start;
 }
@@ -308,6 +357,7 @@ body:has(#content) #cover {
 
 body:has(#content) h1#title {
   font-size: 15px;
+  font-weight: 600;
   margin: 0 0 1.25rem 0;
   line-height: 1.5;
 }
@@ -327,16 +377,18 @@ body:has(#content) #content > :first-child {
 
 /* 호버 시 뜨는 큰 이미지: 작은 이미지와 같은 자리(왼쪽 컬럼 좌상단)에서 시작해
    오른쪽 본문 영역으로 확장되며 뜬다.
+   세로는 col-left의 전체 높이만큼 확장되어 #meta 하단 디바이더까지 닿는다.
    pointer-events: none으로 마우스가 작은 이미지에 머물도록 해 호버 상태를 유지한다. */
 .cover-zoom {
   display: none;
   position: absolute;
   top: 0;
   left: 0;
-  height: 60vh;
+  height: 100%;
   width: auto;
-  max-width: 50vw;
+  max-width: 60vw;
   object-fit: contain;
+  object-position: top left;
   pointer-events: none;
   background: var(--bg);
   border: 1px solid var(--line);
@@ -413,10 +465,10 @@ footer a:hover {
 
 /* -----------------------------------------------------------
    about.html — 가이드/소개 페이지
-   본문 폭을 좁혀 읽기 편하게.
+   2컬럼: 좌(TOC) + 우(활성 섹션 본문)
    ----------------------------------------------------------- */
 body.about {
-  max-width: 720px;
+  max-width: 1000px;
 }
 
 body.about .about-title {
@@ -425,13 +477,22 @@ body.about .about-title {
   margin: 0 0 2rem 0;
 }
 
-/* 목차(TOC) — 위에서 클릭해 해당 섹션으로 이동.
+/* 좌(About 타이틀 + TOC) / 우(본문) 그리드.
+   align-items 기본값(stretch)을 유지해 좌측 컬럼이 row 전체 높이를 차지하도록.
+   그래야 안쪽의 .about-toc sticky가 실제로 동작한다. */
+body.about .about-cols {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 4rem;
+}
+
+/* 목차(TOC) — 항상 보이며, 클릭하면 우측에 해당 섹션만 표시된다.
    목록(index.html)의 ol.archive와 같은 자릿수 표기로 통일감. */
 body.about .about-toc {
-  margin: 0 0 4rem 0;
-  padding: 1rem 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 2rem;
+  margin: 0;
+  padding: 0;
 }
 
 body.about .about-toc ol {
@@ -461,6 +522,32 @@ body.about .about-toc a {
 
 body.about .about-toc a:hover {
   color: var(--accent);
+}
+
+/* 현재 보고 있는 섹션의 TOC 항목은 굵게 — 좌측에서 위치를 즉시 알 수 있다. */
+body.about .about-toc a.active {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* 한 번에 한 섹션만 보이도록 — .active가 있는 섹션만 표시한다.
+   인트로(.about-intro)는 항상 표시 (디스클레이머 역할). */
+body.about main section {
+  display: none;
+}
+body.about main section.active {
+  display: block;
+}
+
+/* 모바일: TOC와 본문을 세로로 쌓고 sticky 해제. */
+@media (max-width: 800px) {
+  body.about .about-cols {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  body.about .about-toc {
+    position: static;
+  }
 }
 
 /* TOC 링크 클릭 시 부드럽게 스크롤. 섹션 위에 약간 여유. */
