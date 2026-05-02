@@ -471,6 +471,18 @@ body.about section {
   scroll-margin-top: 2rem;
 }
 
+/* 첫 ## 이전의 본문 — 박스 없이 안내문/주석으로 표시 */
+body.about .about-intro {
+  margin: 0 0 2rem 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+body.about .about-intro p {
+  margin: 0 0 0.6rem 0;
+}
+
 /* 섹션을 네모 상자로 구분 — 다이어그램(□) 모티브 */
 body.about main section {
   margin-bottom: 1.5rem;
