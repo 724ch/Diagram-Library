@@ -115,6 +115,7 @@ ol.archive a {
   color: var(--fg);
   text-decoration: none;
   word-break: keep-all; /* 한국어 단어는 중간에서 끊기지 않도록 */
+  transition: color 0.12s ease;
 }
 
 ol.archive a:hover {
@@ -151,13 +152,16 @@ main.archive-list section[data-shape="□"] ol.archive a:hover {
    — 각 호버 시 → 각 오른쪽 (각/방 사이 공간)
    — 방 호버 시 → 방 오른쪽 (콘텐츠 우측 여백) */
 .preview {
-  display: none;
   position: absolute;
   top: 2rem;
   left: calc(100% + 1rem);
   width: 200px;
   pointer-events: none;
   z-index: 100;
+  /* opacity 토글로 부드러운 페이드 — display none/block 즉시 전환의 끊김을 없앤다.
+     호버 해제 시 살짝 길게(180ms) 빠지도록 해 마우스가 아슬아슬하게 빠질 때의 깜빡임도 줄인다. */
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 
 .preview img {
@@ -197,7 +201,7 @@ main.archive-list section[data-shape="□"] ol.archive a:hover {
 }
 
 main section a:hover .preview {
-  display: block;
+  opacity: 1;
 }
 
 /* 미리보기: 부모 섹션의 data-shape에 따라 이미지·캡션 테두리만 강조색으로.

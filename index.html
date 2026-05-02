@@ -84,9 +84,9 @@
 
   <script>
     // 각 링크에 호버 시 뜰 미리보기(커버 이미지 + 코멘트)를 붙인다.
-    // 링크의 ?id=... 값을 읽어 content/<id>/cover-cropped.png 와
-    // content/<id>/index.md 경로를 만든다.
-    // 이미지가 없으면 조용히 제거하고, 코멘트는 처음 호버할 때 한 번만 불러온다.
+    // 첫 호버에서 fetch가 일어나면 캡션이 한 박자 늦게 차서 끊겨 보이므로,
+    // 페이지 로드 직후에 모든 항목의 마크다운·이미지를 백그라운드로 미리 가져온다.
+    // 이렇게 하면 호버하는 순간 이미 다 준비되어 있어 즉시 부드럽게 뜬다.
     document.querySelectorAll('.archive a').forEach(link => {
       const id = new URL(link.href).searchParams.get('id');
       if (!id) return;
@@ -97,7 +97,6 @@
       const img = document.createElement('img');
       img.src = `content/${id}/cover-cropped.png`;
       img.alt = '';
-      img.loading = 'lazy';
       img.onerror = () => img.remove();
       preview.appendChild(img);
 
@@ -107,15 +106,12 @@
 
       link.appendChild(preview);
 
-      // 처음 호버할 때 마크다운에서 title / comment 두 줄을 가져와 채운다.
-      let loaded = false;
-      link.addEventListener('mouseenter', async () => {
-        if (loaded) return;
-        loaded = true;
-        try {
-          const res = await fetch(`content/${id}/index.md`);
-          if (!res.ok) return;
-          const text = await res.text();
+      // 마크다운에서 title / comment 두 줄을 백그라운드로 가져와 캡션을 미리 채워둔다.
+      // 실패하면 조용히 무시 — 이미지만 뜬다.
+      fetch(`content/${id}/index.md`)
+        .then(res => res.ok ? res.text() : null)
+        .then(text => {
+          if (!text) return;
           const titleMatch = text.match(/^title:\s*(.+)$/m);
           const commentMatch = text.match(/^comment:\s*(.+)$/m);
           if (titleMatch) {
@@ -130,10 +126,8 @@
             comment.textContent = commentMatch[1].trim();
             caption.appendChild(comment);
           }
-        } catch {
-          // 파일을 못 읽으면 조용히 무시 — 이미지만 뜬다.
-        }
-      });
+        })
+        .catch(() => {});
     });
   </script>
 </body>
