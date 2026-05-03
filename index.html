@@ -83,15 +83,15 @@
   </footer>
 
   <script>
-    // 각 링크에 호버 시 뜰 미리보기(커버 이미지 + 코멘트)를 붙인다.
-    // 첫 호버에서 fetch가 일어나면 캡션이 한 박자 늦게 차서 끊겨 보이므로,
-    // 페이지 로드 직후에 모든 항목의 마크다운·이미지를 백그라운드로 미리 가져온다.
-    // 이렇게 하면 호버하는 순간 이미 다 준비되어 있어 즉시 부드럽게 뜬다.
+    // 각 항목에 미리보기(커버 + 코멘트)를 붙인다.
+    // 데스크톱: 호버 시 절대 위치로 옆에 뜸. 모바일: 탭 시 인라인으로 그 자리에서 펼침.
+    // .preview는 <a>의 자식이 아니라 <li>의 형제로 둔다 (모바일 인라인 확장을 위해).
+    // 페이지 로드 직후 모든 마크다운·이미지를 백그라운드 프리페치 — 첫 인터랙션 즉시 부드럽게.
     document.querySelectorAll('.archive a').forEach(link => {
       const id = new URL(link.href).searchParams.get('id');
       if (!id) return;
 
-      const preview = document.createElement('span');
+      const preview = document.createElement('div');
       preview.className = 'preview';
 
       const img = document.createElement('img');
@@ -100,14 +100,20 @@
       img.onerror = () => img.remove();
       preview.appendChild(img);
 
-      const caption = document.createElement('span');
+      const caption = document.createElement('div');
       caption.className = 'preview-caption';
       preview.appendChild(caption);
 
-      link.appendChild(preview);
+      // 모바일에서만 보이는 '자세히 보기' 링크 — 인라인 확장 후 항목 페이지로 이동.
+      const moreLink = document.createElement('a');
+      moreLink.href = link.href;
+      moreLink.className = 'preview-more';
+      moreLink.textContent = '→ 자세히 보기';
+      preview.appendChild(moreLink);
+
+      link.parentNode.appendChild(preview);
 
       // 마크다운에서 title / comment 두 줄을 백그라운드로 가져와 캡션을 미리 채워둔다.
-      // 실패하면 조용히 무시 — 이미지만 뜬다.
       fetch(`content/${id}/index.md`)
         .then(res => res.ok ? res.text() : null)
         .then(text => {
@@ -129,6 +135,20 @@
         })
         .catch(() => {});
     });
+
+    // 모바일/터치 디바이스: 링크 탭 시 그 자리에서 .preview를 인라인으로 펼친다.
+    // 한 번에 한 항목만 열린다. 펼친 상태에서 안의 '자세히 보기' 링크로 이동.
+    if (window.matchMedia('(hover: none)').matches) {
+      document.querySelectorAll('.archive li > a').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          const li = link.parentNode;
+          const wasExpanded = li.classList.contains('expanded');
+          document.querySelectorAll('.archive li.expanded').forEach(o => o.classList.remove('expanded'));
+          if (!wasExpanded) li.classList.add('expanded');
+        });
+      });
+    }
   </script>
 </body>
 </html>

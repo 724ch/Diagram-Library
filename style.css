@@ -200,8 +200,12 @@ main.archive-list section[data-shape="□"] ol.archive a:hover {
   display: none;
 }
 
-main section a:hover .preview {
-  opacity: 1;
+/* 데스크톱 호버 트리거 — preview는 link의 형제이므로 li:hover에 걸어 트리거.
+   (hover: hover)로 감싸 터치 디바이스의 우발적 호버를 차단한다. */
+@media (hover: hover) {
+  ol.archive li:hover .preview {
+    opacity: 1;
+  }
 }
 
 /* 미리보기: 부모 섹션의 data-shape에 따라 이미지·캡션 테두리만 강조색으로.
@@ -226,9 +230,53 @@ main section:last-of-type .preview {
   right: calc(100% + 1rem);
 }
 
-@media (max-width: 800px) {
+/* 모바일/터치 디바이스: preview를 인라인으로 펼침.
+   탭하면 .expanded가 li에 붙고, .preview가 link 아래 새 줄에 펼쳐진다.
+   '자세히 보기' 링크가 미리보기 안에 있어서 항목 페이지로 이동 가능. */
+@media (hover: none) {
+  ol.archive li {
+    flex-wrap: wrap;
+  }
+  .preview {
+    display: none;
+    position: static;
+    opacity: 1;
+    transition: none;
+    width: 100%;
+    margin-top: 0.75rem;
+    margin-bottom: 1.25rem;
+    pointer-events: auto;
+  }
+  ol.archive li.expanded .preview {
+    display: block;
+  }
+  ol.archive li.expanded > a {
+    color: var(--accent);
+  }
+}
+
+/* 좁은 데스크톱 (호버 가능 + 화면 작음): 절대 위치 미리보기가 화면 밖으로 나가는 걸 방지. */
+@media (max-width: 800px) and (hover: hover) {
   .preview {
     display: none !important;
+  }
+}
+
+/* '자세히 보기' 링크 — 모바일에서만 표시. 데스크톱은 호버한 link 자체를 클릭하면 됨. */
+.preview-more {
+  display: none;
+}
+@media (hover: none) {
+  .preview-more {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    text-align: center;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    text-decoration: none;
+    letter-spacing: 0.02em;
   }
 }
 
